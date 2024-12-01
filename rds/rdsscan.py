@@ -246,4 +246,3 @@ def query_rds(ai, region):
             table_data.append(cluster_data)
 
     return table_head, table_data
-

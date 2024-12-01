@@ -8,7 +8,6 @@ from ebs.ebsscan import query_ebs
 from rds.rdsscan import query_rds
 
 
-
 @click.command(context_settings={"show_default": True})
 @click.help_option("-h", "--help")
 @click.option(
@@ -47,7 +46,9 @@ def main(**options):
                     table_head, table_data = query_rds(ai, region)
 
             if table_head and table_data:
-                tabulated_data = tabulate(table_data, headers=table_head, tablefmt="github")
+                tabulated_data = tabulate(
+                    table_data, headers=table_head, tablefmt="github"
+                )
                 print(tabulated_data)
                 if ai:
                     query_gpt(mode, table_head, tabulated_data)

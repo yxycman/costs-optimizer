@@ -196,7 +196,7 @@ def query_ec2(ai, region):
                 instance_data = [
                     instance_id,
                     instance_name[:20],
-                    instance_os[:10],  #here could be some exotic OS'
+                    instance_os[:10],  # here could be some exotic OS'
                     instance_date,
                     instance_monitoring,
                     f"{instance_kind} {current_node_price}$",
@@ -220,10 +220,11 @@ def query_ec2(ai, region):
                     )
                 else:
                     stopped_reason = instance["StateTransitionReason"]
-                    stopped_time = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", stopped_reason)
+                    stopped_time = re.findall(
+                        "[0-9]{4}-[0-9]{2}-[0-9]{2}", stopped_reason
+                    )
                     instance_data.append(f"stopped: {stopped_time}")
 
                 table_data.append(instance_data)
 
     return table_head, table_data
-
