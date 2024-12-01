@@ -3,7 +3,7 @@
 Allows you to quickly analyze the usage of your (supported) AWS resources and provide
 you with low-hanging-fruit suggestions to optimize the AWS cloud costs.
 
-You can combine the parameters to a script choosing the region and services you would like to scan.
+You can combine the parameters provided to a script choosing the region and services you would like to scan.
 
 ### Supported Services
 
@@ -13,7 +13,7 @@ You can combine the parameters to a script choosing the region and services you 
 
 ### Requirements
 
-You need only Python 3.6+ and dependencies defined in the `requirements.txt` file
+You need only Python 3.9+ with dependencies defined in the `requirements.txt` file
 
 ## Example
 
