@@ -125,7 +125,6 @@ def get_rds_price(price_map, instance_config_map, region):
     if cost_id in price_map.keys():
         monthly_cost = price_map[cost_id]
     else:
-        # print("!!!! API", cost_id)
         client = SESSION.client("pricing", region_name="us-east-1")
         resource_filter = []
         resource_filter.append(

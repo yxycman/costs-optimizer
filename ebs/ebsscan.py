@@ -2,7 +2,6 @@
 
 import boto3
 from pricing.price import get_ebs_price
-from tabulate import tabulate
 
 SESSION = boto3.Session()
 EBS_PRICE_MAP = {}
@@ -76,5 +75,4 @@ def query_ebs(region):
 
             table_data.append(volume_data)
 
-    if table_data:
-        print(tabulate(table_data, headers=table_head, tablefmt="github"))
+    return table_head, table_data
