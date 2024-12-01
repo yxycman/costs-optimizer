@@ -152,7 +152,7 @@ def check_replacement(ec2_client, instance_data, instance_config_map, instance_a
         instance_data.append("N/A")
 
 
-def query_ec2(ai, region):
+def query_ec2(region):
     """
     EC2 entrypoint
     """

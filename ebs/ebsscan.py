@@ -7,7 +7,7 @@ SESSION = boto3.Session()
 EBS_PRICE_MAP = {}
 
 
-def query_ebs(ai, region):
+def query_ebs(region):
     """
     EBS entry point
     """
