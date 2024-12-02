@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import boto3
 from botocore.exceptions import ClientError
 from pricing.price import get_ec2_price
-from tabulate import tabulate
 
 SESSION = boto3.Session()
 AVAILABLE_INSTANCE_TYPES = set()
@@ -72,7 +71,7 @@ def check_recommendation(client, instance_kind, mode):
                 instance_recommendation = recommended_instance
 
     elif re.match("^c|^m|^r", instance_type):
-        if re.match("2|3|4|5|6", instance_generation):
+        if re.match("2|3|4|5|6|7", instance_generation):
             recommended_instance = instance_type
             if mode == "arm":
                 recommended_instance += f"6g.{instance_size}"
@@ -153,7 +152,7 @@ def check_replacement(ec2_client, instance_data, instance_config_map, instance_a
         instance_data.append("N/A")
 
 
-def query_ec2(verbose, region):
+def query_ec2(ai, region):
     """
     EC2 entrypoint
     """
@@ -197,7 +196,7 @@ def query_ec2(verbose, region):
                 instance_data = [
                     instance_id,
                     instance_name[:20],
-                    instance_os[:10],  # there could be some uncommon OS'
+                    instance_os[:10],  # here could be some exotic OS'
                     instance_date,
                     instance_monitoring,
                     f"{instance_kind} {current_node_price}$",
@@ -214,18 +213,18 @@ def query_ec2(verbose, region):
                 check_replacement(ec2_client, instance_data, instance_config_map, "x86")
                 check_replacement(ec2_client, instance_data, instance_config_map, "arm")
 
-                if verbose:
-                    cloudwatch_client = SESSION.client("cloudwatch", region_name=region)
-                    if instance_state == "running":
-                        instance_data.append(
-                            check_ec2_utilization(cloudwatch_client, instance_id)
-                        )
-                    else:
-                        stopped_reason = instance["StateTransitionReason"]
-                        stopped_time = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", stopped_reason)#[0]
-                        instance_data.append(f"stopped: {stopped_time}")
+                cloudwatch_client = SESSION.client("cloudwatch", region_name=region)
+                if instance_state == "running":
+                    instance_data.append(
+                        check_ec2_utilization(cloudwatch_client, instance_id)
+                    )
+                else:
+                    stopped_reason = instance["StateTransitionReason"]
+                    stopped_time = re.findall(
+                        "[0-9]{4}-[0-9]{2}-[0-9]{2}", stopped_reason
+                    )
+                    instance_data.append(f"stopped: {stopped_time}")
 
                 table_data.append(instance_data)
 
-    if table_data:
-        print(tabulate(table_data, headers=table_head, tablefmt="github"))
+    return table_head, table_data
