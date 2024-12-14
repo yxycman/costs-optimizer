@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timedelta
 import boto3
 from pricing.price import get_rds_price
-from tabulate import tabulate
 
 SESSION = boto3.Session()
 RDS_PRICE_MAP = {}
@@ -121,7 +120,7 @@ def check_rds_utilization(cloudwatch_client, instance_id):
     return f"AVG: {round(average_usage, 2)}, MAX: {round(max_usage, 2)}, MIN: {round(min_usage, 2)}"
 
 
-def query_rds(verbose, region):
+def query_rds(ai, region):
     """
     RDS entry point
     """
@@ -232,19 +231,18 @@ def query_rds(verbose, region):
                 else:
                     cluster_data.append("N/A")
 
-            if verbose:
-                if instance_status == "available":
-                    cluster_data.append(
-                        check_rds_utilization(cloudwatch_client, instance_id)
-                    )
-                    connections = check_rds_connection(cloudwatch_client, instance_id)
-                    if connections == 0:
-                        cluster_data[6] = f"delete node (save:{current_node_price}$)"
-                    cluster_data.append(connections)
-                else:
-                    cluster_data.append(instance_status)
-                    cluster_data.append(instance_status)
+            if instance_status == "available":
+                cluster_data.append(
+                    check_rds_utilization(cloudwatch_client, instance_id)
+                )
+                connections = check_rds_connection(cloudwatch_client, instance_id)
+                if connections == 0:
+                    cluster_data[6] = f"delete node (save:{current_node_price}$)"
+                cluster_data.append(connections)
+            else:
+                cluster_data.append(instance_status)
+                cluster_data.append(instance_status)
 
             table_data.append(cluster_data)
-    if table_data:
-        print(tabulate(table_data, headers=table_head, tablefmt="github"))
+
+    return table_head, table_data

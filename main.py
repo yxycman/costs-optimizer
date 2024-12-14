@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import click
+from tabulate import tabulate
+from gpt.ask import query_gpt
 from ec2.ec2scan import query_ec2
 from ebs.ebsscan import query_ebs
 from rds.rdsscan import query_rds
@@ -18,7 +20,12 @@ from rds.rdsscan import query_rds
     "--regions",
     required=True,
 )
-@click.option("-v", "--verbose", is_flag=True)
+@click.option(
+    "-a",
+    "--ai-suggestions",
+    is_flag=True,
+    default=False,
+)
 def main(**options):
     """
     Main entrypoint
@@ -26,17 +33,25 @@ def main(**options):
 
     modes = options["modes"]
     regions = options["regions"]
-    verbose = options["verbose"]
+    ai = options["ai_suggestions"]
 
     for region in regions.split(","):
         for mode in modes.split(","):
             match mode:
                 case "ebs":
-                    query_ebs(region)
+                    table_head, table_data = query_ebs(ai, region)
                 case "ec2":
-                    query_ec2(verbose, region)
+                    table_head, table_data = query_ec2(ai, region)
                 case "rds":
-                    query_rds(verbose, region)
+                    table_head, table_data = query_rds(ai, region)
+
+            if table_head and table_data:
+                tabulated_data = tabulate(
+                    table_data, headers=table_head, tablefmt="github"
+                )
+                print(tabulated_data)
+                if ai:
+                    query_gpt(mode, table_head, tabulated_data)
 
 
 if __name__ == "__main__":
