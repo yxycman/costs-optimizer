@@ -13,12 +13,12 @@ You can combine the parameters provided to a script choosing the region and serv
 
 ### Requirements
 
-You need only Python 3.9+ with dependencies defined in the `requirements.txt` file
+You need only Python 3.11+ with dependencies defined in the `requirements.txt` file
 
 ## Example
 
 ```bash
-$ python3.11 ./main.py -r us-east-1,us-west-2,eu-west-1 -m ebs,ec2,rds -v
+$ python3.11 ./main.py -r us-east-1,us-west-2,eu-west-1 -m ebs,ec2,rds
 
 Running in EBS mode us-east-1
 | id                    | created   | status   | attachment          |   size | type   | cost   | future cost   | saving   |
@@ -90,4 +90,28 @@ Running in EBS mode ap-southeast-2
 Running in EC2 mode ap-southeast-2
 
 Running in RDS mode ap-southeast-2
+```
+
+You can also ask for Google's GEMINI suggestions by adding the `-a` parameter.
+Just ensure the `GOOGLE_API_KEY` env variable is set.
+
+```bash
+...
+Checking i-0bc1bc63e7bfcc9cf
+Checking i-052557a77c7a8fdf3
+| i-0bc1bc63e7bfcc9cf | karpenter-main-dev | Linux   | 2025-05-16 | disabled     | c5.xlarge 141.62$    | c6a.xlarge 127.458$ (save:14.16$)  | c6g.xlarge 113.296$ (save:28.32$) | AVG: 9.08, MAX: 10.01, MIN: 8.16   |
+| i-052557a77c7a8fdf3 | karpenter-main-dev | Linux   | 2025-05-16 | disabled     | c5.xlarge 141.62$    | c6a.xlarge 127.458$ (save:14.16$)  | c6g.xlarge 113.296$ (save:28.32$) | stopped: ['2025-05-16']            |
+
+Querying the GEMINI 1.5 FLASH
+* **Rightsize Instances:**  Many instances (e.g., those with "karpenter-main-dev" in the name) could be significantly downsized. The provided data shows substantial potential savings by migrating to `c6g`, `m6g`, or `t4g` instance families.  The savings are clearly indicated in the "future arm" column.  Even if some instances require the higher CPU performance of the x86 options, the `c6a` and `m6a` families offer considerable cost reductions over their `c5` and `m5` counterparts.
+
+* **Stop Unnecessary Instances:** Several instances show periods of inactivity in the "30 days load" column (indicated by "stopped").  These should be stopped permanently if they are no longer needed.  Leaving them running incurs unnecessary costs.  Instances that are only used intermittently should be scheduled to stop and start automatically using EC2 instance scheduling.
+
+* **Utilize Spot Instances:** For non-critical workloads with flexible start times, consider using Spot Instances for significant cost savings.  The cost savings could be substantial for instances with high usage.
+
+* **Enable/Disable Monitoring:** Review the instances with "monitoring" set to "disabled."  While this saves a small amount on monitoring costs, if monitoring data is needed for these instances, enabling it should be prioritized; however, unnecessary monitoring should be disabled to avoid unnecessary charges.
+
+* **Reserved Instances or Savings Plans:** For consistently running instances, explore Reserved Instances (RIs) or Savings Plans to lock in lower prices over a longer term.  The high number of similar "karpenter-main-dev" instances makes this a particularly attractive option.
+
+* **Optimize AMI:** Use the most recent and optimized Amazon Machine Images (AMIs) for your operating system and applications. Older AMIs can be less efficient and lead to higher costs.
 ```
