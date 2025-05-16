@@ -120,11 +120,11 @@ def check_rds_utilization(cloudwatch_client, instance_id):
     return f"AVG: {round(average_usage, 2)}, MAX: {round(max_usage, 2)}, MIN: {round(min_usage, 2)}"
 
 
-def query_rds(ai, region):
+def query_rds(region):
     """
     RDS entry point
     """
-    print(f"\nRunning in RDS mode {region}")
+    print(f"\n\nRunning in RDS mode {region}")
 
     client = SESSION.client("rds", region_name=region)
     cloudwatch_client = SESSION.client("cloudwatch", region_name=region)

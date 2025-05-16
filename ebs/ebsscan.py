@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 
+from datetime import datetime
 import boto3
-from pricing.price import get_ebs_price
+from pricing.price import get_ebs_price, get_snapshot_price
 
 SESSION = boto3.Session()
 EBS_PRICE_MAP = {}
+SNAPSHOT_PRICE_MAP = {}
 
 
-def query_ebs(ai, region):
+def query_ebs(region):
     """
     EBS entry point
     """
-    print(f"\nRunning in EBS mode {region}")
+    print(f"\n\nRunning in EBS volume mode {region}")
 
     client = SESSION.client("ec2", region_name=region)
     paginator = client.get_paginator("describe_volumes")
@@ -74,5 +76,62 @@ def query_ebs(ai, region):
                 volume_data.append(f"{current_cost}$")
 
             table_data.append(volume_data)
+
+    return table_head, table_data
+
+
+def query_ebs_snapshots(region):
+    """
+    EBS snapshot entrypoint
+    """
+    print(f"\n\nRunning in EBS snapshot mode {region}")
+
+    ec2_client = SESSION.client("ec2", region_name=region)
+    account_id = SESSION.client("sts").get_caller_identity().get("Account")
+    paginator = ec2_client.get_paginator("describe_snapshots")
+    page_iterator = paginator.paginate(OwnerIds=[account_id])
+
+    table_head = [
+        "id",
+        "description (crop 100)",
+        "volume size",
+        "snapshot size (Feb 2025+)",
+        "state",
+        "start time",
+        "tier",
+        "cost/GB",
+        "cost/Month",
+    ]
+    table_data = []
+
+    for page in page_iterator:
+        for snapshot in page["Snapshots"]:
+            snapshot_id = snapshot["SnapshotId"]
+            snapshot_description = snapshot.get("Description", "N/A")
+            volume_size = snapshot.get("VolumeSize", "N/A")
+            snapshot_size = round(snapshot.get("FullSnapshotSizeInBytes", "N/A"))
+            snapshot_state = snapshot["State"]
+            snapshot_start_time = datetime.strftime(snapshot["StartTime"], "%Y-%m-%d")
+            snapshot_tier = snapshot.get("StorageTier", "N/A")
+            snapshot_size_gb = (
+                snapshot_size / 1073741824 if snapshot_size != "N/A" else "N/A"
+            )
+
+            snapshot_cost, snapshot_price = get_snapshot_price(
+                SNAPSHOT_PRICE_MAP, snapshot_tier, snapshot_size_gb, region
+            )
+
+            snapshot_data = [
+                snapshot_id,
+                snapshot_description[:100],
+                volume_size,
+                snapshot_size_gb,
+                snapshot_state,
+                snapshot_start_time,
+                snapshot_tier,
+                f"{snapshot_cost}$",
+                f"{round(snapshot_price, 2)}$",
+            ]
+            table_data.append(snapshot_data)
 
     return table_head, table_data
