@@ -1,5 +1,6 @@
 import boto3
 import json
+import re
 
 
 SESSION = boto3.Session()
@@ -126,10 +127,9 @@ def get_rds_price(price_map, instance_config_map, region):
         monthly_cost = price_map[cost_id]
     else:
         client = SESSION.client("pricing", region_name="us-east-1")
-        resource_filter = []
-        resource_filter.append(
+        resource_filter = [
             {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"}
-        )
+        ]
         # engine filter
         engine_filter(resource_filter, instance_config_map["instance_engine"])
 
@@ -159,16 +159,11 @@ def get_ebs_price(price_map, volume_type, region):
         monthly_cost = price_map[cost_id]
     else:
         client = SESSION.client("pricing", region_name="us-east-1")
-        resource_filter = []
-        resource_filter.append(
-            {"Field": "volumeApiName", "Value": volume_type, "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "productFamily", "Value": "Storage", "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"}
-        )
+        resource_filter = [
+            {"Field": "volumeApiName", "Value": volume_type, "Type": "TERM_MATCH"},
+            {"Field": "productFamily", "Value": "Storage", "Type": "TERM_MATCH"},
+            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"},
+        ]
 
         data = client.get_products(ServiceCode="AmazonEC2", Filters=resource_filter)
         if len(data["PriceList"]) > 1:
@@ -181,32 +176,21 @@ def get_ebs_price(price_map, volume_type, region):
 
 def get_ec2_price(price_map, instance, os, region):
     """
-    EC2 cost query
+    EC2 instances cost query
     """
     cost_id = instance + os
     if cost_id in price_map.keys():
         monthly_cost = price_map[cost_id]
     else:
         client = SESSION.client("pricing", region_name="us-east-1")
-        resource_filter = []
-        resource_filter.append(
-            {"Field": "tenancy", "Value": "shared", "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "operatingSystem", "Value": os, "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "preInstalledSw", "Value": "NA", "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "instanceType", "Value": instance, "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"}
-        )
-        resource_filter.append(
-            {"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"}
-        )
+        resource_filter = [
+            {"Field": "tenancy", "Value": "shared", "Type": "TERM_MATCH"},
+            {"Field": "operatingSystem", "Value": os, "Type": "TERM_MATCH"},
+            {"Field": "preInstalledSw", "Value": "NA", "Type": "TERM_MATCH"},
+            {"Field": "instanceType", "Value": instance, "Type": "TERM_MATCH"},
+            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"},
+            {"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"},
+        ]
 
         if os == "Windows":
             resource_filter.append(
@@ -224,3 +208,46 @@ def get_ec2_price(price_map, instance, os, region):
         price_map[cost_id] = monthly_cost
 
     return monthly_cost
+
+
+def get_snapshot_price(snapshot_price, snapshot_tier, snapshot_size, region):
+    """
+    EC2 snapshots cost query
+    """
+
+    gb_cost = "UNKN"
+    monthly_cost = "UNKN"
+
+    if snapshot_tier in snapshot_price.keys():
+        gb_cost = snapshot_price[snapshot_tier]
+        monthly_cost = gb_cost * snapshot_size
+        return gb_cost, monthly_cost
+
+    if snapshot_tier not in ["archive", "standard"]:
+        return gb_cost, monthly_cost
+
+    client = SESSION.client("pricing", region_name="us-east-1")
+
+    resource_filter = [
+        {"Field": "productFamily", "Value": "Storage Snapshot", "Type": "TERM_MATCH"},
+        {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"},
+    ]
+
+    data = client.get_products(ServiceCode="AmazonEC2", Filters=resource_filter)
+
+    usagetype = (
+        "SnapshotArchiveStorage" if snapshot_tier == "archive" else "SnapshotUsage"
+    )
+
+    for unit in data["PriceList"]:
+        unit = json.loads(unit)
+        od = unit["terms"]["OnDemand"]
+        id1 = list(od)[0]
+        id2 = list(od[id1]["priceDimensions"])[0]
+
+        if re.match(f".*{usagetype}$", unit["product"]["attributes"]["usagetype"]):
+            gb_cost = float(od[id1]["priceDimensions"][id2]["pricePerUnit"]["USD"])
+            snapshot_price[snapshot_tier] = gb_cost
+            monthly_cost = gb_cost * snapshot_size
+
+    return gb_cost, monthly_cost
