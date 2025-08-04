@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-
+"""
+RDS scanner
+"""
 import re
 from datetime import datetime, timedelta
 import boto3
@@ -124,7 +126,8 @@ def query_rds(region):
     """
     RDS entry point
     """
-    print(f"\n\nRunning in RDS mode {region}")
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    print(f"\n\n✨  Running in RDS mode {region}")
 
     client = SESSION.client("rds", region_name=region)
     cloudwatch_client = SESSION.client("cloudwatch", region_name=region)
@@ -208,7 +211,7 @@ def query_rds(region):
                 cluster_data.append(current_node_price)
                 cluster_data.append("N/A")
             else:
-                cluster_data.append(f"{instance_class} {current_node_price}$")
+                cluster_data.append(f"{instance_class} {current_node_price}")
                 instance_replacement = check_recommendation(
                     client, instance_engine, instance_class
                 )
@@ -226,7 +229,7 @@ def query_rds(region):
                     else:
                         saving = round((current_node_price - future_node_price), 2)
                         cluster_data.append(
-                            f"{instance_replacement} {future_node_price}$ (save:{saving}$)"
+                            f"{instance_replacement} {future_node_price} (save:{saving})"
                         )
                 else:
                     cluster_data.append("N/A")
@@ -237,7 +240,7 @@ def query_rds(region):
                 )
                 connections = check_rds_connection(cloudwatch_client, instance_id)
                 if connections == 0:
-                    cluster_data[6] = f"delete node (save:{current_node_price}$)"
+                    cluster_data[6] = f"delete node (save:{current_node_price})"
                 cluster_data.append(connections)
             else:
                 cluster_data.append(instance_status)

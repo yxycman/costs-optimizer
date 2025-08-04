@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-
+"""
+EC2 scanner
+"""
 import re
 from datetime import datetime, timedelta
 import boto3
@@ -146,7 +148,7 @@ def check_replacement(ec2_client, instance_data, instance_config_map, instance_a
             else:
                 saving = round((current_node_price - future_node_price), 2)
                 instance_data.append(
-                    f"{instance_replacement} {future_node_price}$ (save:{saving}$)"
+                    f"{instance_replacement} {future_node_price} (save:{saving})"
                 )
     else:
         instance_data.append("N/A")
@@ -156,21 +158,22 @@ def query_ec2(region):
     """
     EC2 entrypoint
     """
-    print(f"\n\nRunning in EC2 instance mode {region}")
+    # pylint: disable=too-many-locals,too-many-branches
+    print(f"\n\n✨  Running in EC2 instance mode {region}")
 
     ec2_client = SESSION.client("ec2", region_name=region)
     paginator = ec2_client.get_paginator("describe_instances")
     page_iterator = paginator.paginate()
 
     table_head = [
-        "id",
-        "name (crop 20)",
-        "os",
-        "started",
-        "monitoring",
-        "current",
-        "future x86",
-        "future arm",
+        "InstanceId",
+        "Name (crop 20)",
+        "OS",
+        "Started",
+        "Monitoring",
+        "Current",
+        "Future x86",
+        "Future arm",
         "30 days load",
     ]
     table_data = []
@@ -180,7 +183,7 @@ def query_ec2(region):
             for instance in reservation["Instances"]:
                 instance_id = instance["InstanceId"]
                 instance_name = check_instance_name(instance)
-                print(f"Checking {instance_id}")
+                print(f"Processing {instance_id}")
 
                 instance_state = instance["State"]["Name"]
                 instance_kind = instance["InstanceType"]
@@ -199,7 +202,7 @@ def query_ec2(region):
                     instance_os[:10],  # here could be some exotic OS'
                     instance_date,
                     instance_monitoring,
-                    f"{instance_kind} {current_node_price}$",
+                    f"{instance_kind} {current_node_price}",
                 ]
 
                 instance_config_map = {

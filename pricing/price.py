@@ -1,6 +1,10 @@
-import boto3
-import json
+#!/usr/bin/env python3
+"""
+Pricing functions
+"""
 import re
+import json
+import boto3
 
 
 SESSION = boto3.Session()
@@ -251,3 +255,72 @@ def get_snapshot_price(snapshot_price, snapshot_tier, snapshot_size, region):
             monthly_cost = gb_cost * snapshot_size
 
     return gb_cost, monthly_cost
+
+
+def get_load_balancer_price(price_map, region, lb_type):
+    """
+    Load Balancer cost query
+    """
+    cost_id = region + lb_type
+    if cost_id in price_map.keys():
+        monthly_cost = price_map[cost_id]
+    else:
+        client = SESSION.client("pricing", region_name="us-east-1")
+
+        resource_filter = [
+            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"},
+            {"Field": "productFamily", "Value": "Load Balancer", "Type": "TERM_MATCH"},
+        ]
+
+        data = client.get_products(ServiceCode="AmazonEC2", Filters=resource_filter)
+        monthly_cost = "UNKN"
+        for price_item in data["PriceList"]:
+            unit = json.loads(price_item)
+            usage_type = unit["product"]["attributes"]["usagetype"]
+            if re.match(f".*LoadBalancerUsage", usage_type):
+                od = unit["terms"]["OnDemand"]
+                id1 = list(od)[0]
+                id2 = list(od[id1]["priceDimensions"])[0]
+                monthly_cost = 730 * float(
+                    od[id1]["priceDimensions"][id2]["pricePerUnit"]["USD"]
+                )
+                return monthly_cost
+
+    return monthly_cost
+
+
+def get_log_group_storage_costs(price_map, region):
+    """
+    Log group storage costs query
+    """
+    cost_id = region
+    if cost_id in price_map.keys():
+        monthly_cost = price_map[cost_id]
+    else:
+        client = SESSION.client("pricing", region_name="us-east-1")
+        resource_filter = [
+            {"Field": "regionCode", "Value": region, "Type": "TERM_MATCH"},
+            {
+                "Field": "productFamily",
+                "Value": "Storage Snapshot",
+                "Type": "TERM_MATCH",
+            },
+        ]
+
+        data = client.get_products(
+            ServiceCode="AmazonCloudWatch", Filters=resource_filter
+        )
+        monthly_cost = "UNKN"
+        for price_item in data["PriceList"]:
+            unit = json.loads(price_item)
+            usage_type = unit["product"]["attributes"]["usagetype"]
+            if re.match(f".*TimedStorage-ByteHrs", usage_type):
+                od = unit["terms"]["OnDemand"]
+                id1 = list(od)[0]
+                id2 = list(od[id1]["priceDimensions"])[0]
+                monthly_cost = float(
+                    od[id1]["priceDimensions"][id2]["pricePerUnit"]["USD"]
+                )
+                return monthly_cost
+
+    return monthly_cost

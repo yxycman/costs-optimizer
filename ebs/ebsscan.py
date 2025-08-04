@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-
+"""
+EBS scanner
+"""
 from datetime import datetime
 import boto3
 from pricing.price import get_ebs_price, get_snapshot_price
@@ -13,22 +15,23 @@ def query_ebs(region):
     """
     EBS entry point
     """
-    print(f"\n\nRunning in EBS volume mode {region}")
+    # pylint: disable=too-many-locals,too-many-branches
+    print(f"\n\n✨  Running in EBS volume mode {region}")
 
     client = SESSION.client("ec2", region_name=region)
     paginator = client.get_paginator("describe_volumes")
     page_iterator = paginator.paginate()
 
     table_head = [
-        "id",
-        "created",
-        "status",
-        "attachment",
-        "size",
-        "type",
-        "cost",
-        "future cost",
-        "saving",
+        "VolumeId",
+        "Created",
+        "Status",
+        "Attachment",
+        "Size",
+        "Type",
+        "Cost",
+        "Future cost",
+        "Saving",
     ]
     table_data = []
 
@@ -65,15 +68,15 @@ def query_ebs(region):
                         saving = "N/A"
                     else:
                         saving = round((current_cost - future_cost), 2)
-                    volume_data.append(f"{current_cost}$")
-                    volume_data.append(f"{future_cost}$")
-                    volume_data.append(f"{saving}$")
+                    volume_data.append(current_cost)
+                    volume_data.append(future_cost)
+                    volume_data.append(saving)
                 else:
-                    volume_data.append(f"{current_cost}$")
+                    volume_data.append(current_cost)
             else:
-                volume_data.append(f"{current_cost}$")
+                volume_data.append(current_cost)
                 volume_data.append(None)
-                volume_data.append(f"{current_cost}$")
+                volume_data.append(current_cost)
 
             table_data.append(volume_data)
 
@@ -84,7 +87,8 @@ def query_ebs_snapshots(region):
     """
     EBS snapshot entrypoint
     """
-    print(f"\n\nRunning in EBS snapshot mode {region}")
+    # pylint: disable=too-many-locals,too-many-branches
+    print(f"\n\n✨  Running in EBS snapshot mode {region}")
 
     ec2_client = SESSION.client("ec2", region_name=region)
     account_id = SESSION.client("sts").get_caller_identity().get("Account")
@@ -92,15 +96,15 @@ def query_ebs_snapshots(region):
     page_iterator = paginator.paginate(OwnerIds=[account_id])
 
     table_head = [
-        "id",
-        "description (crop 100)",
-        "volume size",
-        "snapshot size (Feb 2025+)",
-        "state",
-        "start time",
-        "tier",
-        "cost/GB",
-        "cost/Month",
+        "SnapshotId",
+        "Description (crop 100)",
+        "Volume size",
+        "Snapshot size *",
+        "State",
+        "Start time",
+        "Tier",
+        "Cost/GB",
+        "Cost/Month",
     ]
     table_data = []
 
@@ -125,12 +129,12 @@ def query_ebs_snapshots(region):
                 snapshot_id,
                 snapshot_description[:100],
                 volume_size,
-                snapshot_size_gb,
+                int(snapshot_size_gb),
                 snapshot_state,
                 snapshot_start_time,
                 snapshot_tier,
-                f"{snapshot_cost}$",
-                f"{round(snapshot_price, 2)}$",
+                snapshot_cost,
+                round(snapshot_price, 2),
             ]
             table_data.append(snapshot_data)
 
