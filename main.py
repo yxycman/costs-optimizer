@@ -55,7 +55,8 @@ def tabulate_data(ai, mode, table_head, table_data):
 @click.option(
     "-m",
     "--modes",
-    required=True,
+    required=False,
+    default="ebs,ec2,rds,lb,ami,ecr,cw",
 )
 @click.option(
     "-r",
@@ -73,6 +74,7 @@ def tabulate_data(ai, mode, table_head, table_data):
     "--export-file",
     help="Export file path",
     required=False,
+    default="costs-optimizer.xlsx",
 )
 def main(**options):
     """

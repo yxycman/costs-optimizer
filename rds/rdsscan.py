@@ -240,7 +240,7 @@ def query_rds(region):
                 )
                 connections = check_rds_connection(cloudwatch_client, instance_id)
                 if connections == 0:
-                    cluster_data[6] = f"delete node (save:{current_node_price})"
+                    cluster_data[7] = f"delete node (save:{current_node_price})"
                 cluster_data.append(connections)
             else:
                 cluster_data.append(instance_status)

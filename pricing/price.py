@@ -38,6 +38,38 @@ def engine_filter(resource_filter, instance_engine):
                 "Value": "MariaDB",
             }
         )
+    elif instance_engine == "postgres":
+        resource_filter.append(
+            {
+                "Type": "TERM_MATCH",
+                "Field": "databaseEngine",
+                "Value": "PostgreSQL",
+            }
+        )
+    elif instance_engine == "mysql":
+        resource_filter.append(
+            {
+                "Type": "TERM_MATCH",
+                "Field": "databaseEngine",
+                "Value": "MySQL",
+            }
+        )
+    elif instance_engine == "oracle":
+        resource_filter.append(
+            {
+                "Type": "TERM_MATCH",
+                "Field": "databaseEngine",
+                "Value": "Oracle",
+            }
+        )
+    elif instance_engine == "sqlserver":
+        resource_filter.append(
+            {
+                "Type": "TERM_MATCH",
+                "Field": "databaseEngine",
+                "Value": "SQL Server",
+            }
+        )
 
 
 def az_filter(resource_filter, instance_az):
@@ -127,6 +159,8 @@ def get_rds_price(price_map, instance_config_map, region):
         + instance_config_map["instance_storage"]
         + str(instance_config_map["instance_az"])
     )
+
+    print(111, cost_id, instance_config_map)
     if cost_id in price_map.keys():
         monthly_cost = price_map[cost_id]
     else:
